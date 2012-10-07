@@ -597,32 +597,17 @@ void PutByte(uint8_t gx, uint8_t y, uint8_t pb){
 	WriteData(pb);
 }
 
-void PutPixel(uint8_t gx, uint8_t gy){
+void PutPixel(uint8_t gx, uint8_t gy)
+{
 	uint8_t y;
 	uint8_t nbit;
 	uint8_t lcd_byte;
+
 	y = gy / 8;
 	nbit = gy - y * 8;
 	lcd_byte = GetByteXY(gx,y);
 	GotoGXY(gx, y);
-	switch (nbit) { 
-		case 0: lcd_byte |= 0x01;
-		break;
-		case 1: lcd_byte |= 0x02;
-		break;
-		case 2: lcd_byte |= 0x04;
-		break;
-		case 3: lcd_byte |= 0x08;
-		break;
-		case 4: lcd_byte |= 0x10;
-		break;
-		case 5: lcd_byte |= 0x20;
-		break;
-		case 6: lcd_byte |= 0x40;
-		break;
-		case 7: lcd_byte |= 0x80;
-		break;
-	}
+	lcd_byte |= 1 << nbit;
 	WriteData(lcd_byte);
 }
 
