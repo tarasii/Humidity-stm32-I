@@ -155,7 +155,7 @@ int main(void){
 				
 				dt = RTCTimeStr.RTC_Minutes - buftime;
 				if(dt<0){dt=-dt;}
-				if(dt>10){
+				if(dt>20){
 					PutPixel(curx,61-(preasureAVG-998));
 					buftime = RTCTimeStr.RTC_Minutes;
 					if (++curx>98){
@@ -163,6 +163,7 @@ int main(void){
 						first_time_in_mode = 1;
 					}
 				}
+				Delay(100);
 				break;
 			case 1:
 				if (first_time_in_mode==1) {
