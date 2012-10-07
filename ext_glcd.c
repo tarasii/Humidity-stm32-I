@@ -192,6 +192,12 @@ void Pulse_E(void){
 	GLCD_Delay(300);
 }
 
+#define WriteCommonBit(v, bit) 				\
+	if ((v) & (1 << bit)) 				\
+		GPIO_HIGH(DATA_PORT, DATA_PIN##bit);	\
+	else						\
+		GPIO_LOW(DATA_PORT, DATA_PIN##bit);	  
+
 void WriteCommon(unsigned char  value){
   GPIO_InitTypeDef GPIO_InitStructure;
 	
@@ -205,62 +211,15 @@ void WriteCommon(unsigned char  value){
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
   GPIO_Init( DATA_PORT, &GPIO_InitStructure);
 	
-	if ((value&0x01) == 0x00){
-		GPIO_LOW(DATA_PORT, DATA_PIN0);	  
-	}
-	else{
-		GPIO_HIGH(DATA_PORT, DATA_PIN0);	  
-	}
-	
-	if ((value&0x02) == 0x00){
-		GPIO_LOW(DATA_PORT, DATA_PIN1);	  
-	}
-	else{
-		GPIO_HIGH(DATA_PORT, DATA_PIN1);	  
-	}
-	
-	if ((value&0x04) == 0x00){
-		GPIO_LOW(DATA_PORT, DATA_PIN2);	  
-	}
-	else{
-		GPIO_HIGH(DATA_PORT, DATA_PIN2);	  
-	}
-	
-	if ((value&0x08) == 0x00){
-		GPIO_LOW(DATA_PORT,DATA_PIN3);	  
-	}
-	else{
-		GPIO_HIGH(DATA_PORT, DATA_PIN3);	  
-	}
-	
-	if ((value&0x10) == 0x00){
-		GPIO_LOW(DATA_PORT,DATA_PIN4);	  
-	}
-	else{
-		GPIO_HIGH(DATA_PORT, DATA_PIN4);	  
-	}
-	
-	if ((value&0x20) == 0x00){
-		GPIO_LOW(DATA_PORT,DATA_PIN5);	  
-	}
-	else{
-		GPIO_HIGH(DATA_PORT, DATA_PIN5);	  
-	}
-	
-	if ((value&0x40) == 0x00){
-		GPIO_LOW(DATA_PORT,DATA_PIN6);	  
-	}
-	else{
-		GPIO_HIGH(DATA_PORT, DATA_PIN6);	  
-	}
-	
-	if ((value&0x80) == 0x00){
-		GPIO_LOW(DATA_PORT,DATA_PIN7);	  
-	}
-	else{
-		GPIO_HIGH(DATA_PORT, DATA_PIN7);	  
-	}
-		
+  	WriteCommonBit(values, 0);
+  	WriteCommonBit(values, 1);
+  	WriteCommonBit(values, 2);
+  	WriteCommonBit(values, 3);
+  	WriteCommonBit(values, 4);
+  	WriteCommonBit(values, 5);
+  	WriteCommonBit(values, 6);
+  	WriteCommonBit(values, 7);
+
 	Pulse_E();	
 }
 
