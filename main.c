@@ -64,8 +64,8 @@ void DMA1_Channel1_IRQHandler    (void)
 
 int main(void){
 
-	uint8_t i, curx=1;
-	int dt, buftime = -10;
+	uint8_t i, curx=1, buftime = -80;
+	int dt;
 	char strDisp[25] ;
 	
 	//static uint32_t toggle_ms = 0;
@@ -163,7 +163,7 @@ int main(void){
 						first_time_in_mode = 1;
 					}
 				}
-				Delay(100);
+				Delay(500);
 				break;
 			case 1:
 				if (first_time_in_mode==1) {
