@@ -62,11 +62,13 @@ void DMA1_Channel1_IRQHandler    (void)
 }
 
 
+
 int main(void){
 
-	uint8_t i, curx=1, buftime = -80;
+	uint8_t i, curx, buftime;
 	int dt;
 	char strDisp[25] ;
+	uint32_t datetime;
 	
 	//static uint32_t toggle_ms = 0;
 	RTC_DateTypeDef RTCDateStr;
@@ -95,7 +97,17 @@ int main(void){
 	num_ow = OW_Scan((uint8_t *)idbuf, 2);
 	
   OW_Send(OW_SEND_RESET, "\xcc\x44", 2, NULL, NULL, OW_NO_READ);
-
+	
+	//owSetDate((uint8_t *)idbuf[0]);
+	
+	datetime = owGetDate((uint8_t *) idbuf[0]);
+	
+	ConvertDateTime(datetime, &RTCTimeStr, &RTCDateStr);
+	
+	RTC_SetTime(RTC_Format_BIN, &RTCTimeStr);
+	RTC_SetDate(RTC_Format_BIN, &RTCDateStr);
+	
+	
 	while(1){
 	
     if (flag_UserButton == 1){
@@ -138,6 +150,9 @@ int main(void){
 					GPIO_LOW(LD_PORT,LD_BLUE);
 					
 					Rectangle(0,24,99,62);
+					
+					curx=1; 
+					buftime = 80;
 
 				}
 				
@@ -153,10 +168,12 @@ int main(void){
  				GotoXY(0,2);				
  				Write_GLCD((unsigned char *) strDisp);
 				
+				datetime = owGetDate((uint8_t *) idbuf[0]);
+
 				dt = RTCTimeStr.RTC_Minutes - buftime;
 				if(dt<0){dt=-dt;}
 				if(dt>20){
-					PutPixel(curx,61-(preasureAVG-998));
+					PutPixel(curx,61-(preasureAVG-997));
 					buftime = RTCTimeStr.RTC_Minutes;
 					if (++curx>98){
 						curx=1;
@@ -202,6 +219,10 @@ int main(void){
 				GotoXY(0,6);				
 				Write_GLCD((unsigned char *) strDisp);
 				
+				sprintf(strDisp, "%x %d", datetime, datetime);
+				GotoXY(0,7);				
+				Write_GLCD((unsigned char *) strDisp);
+										
 				break;
 			case 2:
 				if (first_time_in_mode==1) {
@@ -372,6 +393,86 @@ uint16_t GetTemperature(uint8_t *idbuf){
 	dirtytemp = buf[1]*0x100+buf[0];
 	
 	return dirtytemp;
+}
+
+uint32_t owGetDate(uint8_t *idbuf){
+ 	uint8_t cmd[10];
+ 	uint8_t i;
+ 	uint8_t buf[5];
+ 	
+	cmd[0]=0x55;
+	for (i=1;i<9;i++)
+	{
+		cmd[i]=idbuf[i-1];
+	}
+	//cmd[9]=0x66;
+	
+ 	OW_Send(OW_SEND_RESET, cmd, 9, NULL, NULL, OW_NO_READ);
+
+	Delay(10);
+	
+ 	OW_Send(OW_NO_RESET, "\x66\xff\xff\xff\xff\xff", 6, buf, 5, 1);
+  
+	return buf[4]*0x1000000+buf[3]*0x10000+buf[2]*0x100+buf[1];
+}
+
+void owSetDate(uint8_t *idbuf){
+ 	uint8_t cmd[15];
+ 	uint8_t i;
+	
+ 	
+	cmd[0]=0x55;
+	for (i=1;i<9;i++)
+	{
+		cmd[i]=idbuf[i-1];
+	}
+	cmd[9]=0x99;
+	cmd[10]=0x0c;
+	cmd[11]=0xff;
+	cmd[12]=0xef;
+	cmd[13]=0x72;
+	cmd[14]=0x50;
+	
+ 	OW_Send(OW_SEND_RESET, cmd, 15, NULL, NULL, OW_NO_READ);
+  
+}
+
+void ConvertDateTime(uint32_t datetime, RTC_TimeTypeDef* RTC_TimeStruct, RTC_DateTypeDef* RTC_DateStruct){
+	uint32_t hh, nd;
+	uint16_t mm, yy, cd, daysum = 0;
+	uint8_t ss, i;
+	uint8_t ma[12] = {31,28,31,30,31,30,31,31,30,31,30,31};
+	
+	
+// 	uint32_t nd, nh, hh;
+// 	uint16_t mm, nm;
+// 	uint8_t ss;
+	
+ 	nd = datetime / (24*60*60);
+// 	nh = datetime - nd * 24*60*60;
+// 	hh = nh/(60*60);
+// 	nm = nh - hh * 60*60;
+// 	mm = (nm)/60;
+// 	ss = nm - mm*60;
+	
+	yy = (nd / 365) - 30;
+	
+	if (yy % 4 == 0){ma[1]+=1;}
+	
+	cd = nd - ((nd / 365) * 365 + nd / 365 / 4);
+	for (i=1;daysum<cd;i++){
+		daysum += ma[i-1];
+	}
+	hh = (datetime % (24*60*60)) / (60*60);
+	mm = (datetime % (60*60)) / 60;
+	ss = datetime % 60;
+	
+	RTC_DateStruct->RTC_Year = yy;
+	RTC_DateStruct->RTC_Month = i-1;
+	RTC_DateStruct->RTC_Date = cd - (daysum - ma[i])+1;
+	RTC_TimeStruct->RTC_Hours = hh;
+	RTC_TimeStruct->RTC_Minutes = mm;
+	RTC_TimeStruct->RTC_Seconds = ss;
 }
 
 float CalculateTemperature(uint16_t dirtytemp){
