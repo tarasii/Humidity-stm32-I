@@ -86,6 +86,8 @@ int main(void){
 	
 	configureADC_Temp();	
 	
+	DAC_Config();
+	
 	Init_Ext_GLCD();
 	
 	GotoXY(0,0);
@@ -139,6 +141,9 @@ int main(void){
  		temperature_data = GetTemperature((uint8_t *) idbuf[1]); 
  		temperature = CalculateTemperature(temperature_data);		
 		
+		DAC_SetChannel1Data(DAC_Align_8b_R, 2048 + temperature_data);
+		DAC_SetChannel2Data(DAC_Align_8b_R, 1024);
+		
 		switch (mode){
 			case 0:				
 				if (first_time_in_mode==1) {
@@ -149,9 +154,16 @@ int main(void){
 					GPIO_LOW(LD_PORT,LD_GREEN);
 					GPIO_LOW(LD_PORT,LD_BLUE);
 					
-					Rectangle(0,24,99,62);
+					GotoXY(0,3);				
+					Write_GLCD((unsigned char *) "R");
+					GotoXY(0,4);				
+					Write_GLCD((unsigned char *) "H");
+					GotoXY(0,6);				
+					Write_GLCD((unsigned char *) "P");
+					Rectangle(5,24,99,62);
+					drawLine(5,40,99,40);
 					
-					curx=1; 
+					curx=6; 
 					buftime = 80;
 
 				}
@@ -177,7 +189,7 @@ int main(void){
 					PutPixel(curx,44-(humidity/5));
 					buftime = RTCTimeStr.RTC_Minutes;
 					if (++curx>98){
-						curx=1;
+						curx=6;
 						first_time_in_mode = 1;
 					}
 				}
@@ -235,13 +247,13 @@ int main(void){
 					GPIO_TOGGLE(LD_PORT,LD_GREEN);
 					GPIO_TOGGLE(LD_PORT,LD_BLUE);
 					
-					}
+				}
 					
-					for (i=0;i<2;i++){
-						sprintf(strDisp, "ID=%02x%02x%02x%02x%02x%02x%02x%02x", idbuf[i][0], idbuf[i][1], idbuf[i][2], idbuf[i][3], idbuf[i][4], idbuf[i][5], idbuf[i][6], idbuf[i][7]);
-						GotoXY(0,i);				
-						Write_GLCD((unsigned char *) strDisp);
-					}
+				for (i=0;i<2;i++){
+					sprintf(strDisp, "ID=%02x%02x%02x%02x%02x%02x%02x%02x", idbuf[i][0], idbuf[i][1], idbuf[i][2], idbuf[i][3], idbuf[i][4], idbuf[i][5], idbuf[i][6], idbuf[i][7]);
+					GotoXY(0,i);				
+					Write_GLCD((unsigned char *) strDisp);
+				}
 				break;
 		}			
 
@@ -399,22 +411,22 @@ uint16_t GetTemperature(uint8_t *idbuf){
 uint32_t owGetDate(uint8_t *idbuf){
  	uint8_t cmd[10];
  	uint8_t i;
- 	uint8_t buf[5];
+ 	uint8_t buf[4];
  	
 	cmd[0]=0x55;
 	for (i=1;i<9;i++)
 	{
 		cmd[i]=idbuf[i-1];
 	}
-	//cmd[9]=0x66;
 	
  	OW_Send(OW_SEND_RESET, cmd, 9, NULL, NULL, OW_NO_READ);
 
 	Delay(10);
 	
- 	OW_Send(OW_NO_RESET, "\x66\xff\xff\xff\xff\xff", 6, buf, 5, 1);
+ 	OW_Send(OW_NO_RESET, "\x66\xff\xff\xff\xff\xff", 6, buf, 4, 2);
   
-	return buf[4]*0x1000000+buf[3]*0x10000+buf[2]*0x100+buf[1];
+	return buf[3]*0x1000000+buf[2]*0x10000+buf[1]*0x100+buf[0];
+	//return (uint32_t) *buf;
 }
 
 void owSetDate(uint8_t *idbuf){
@@ -440,14 +452,9 @@ void owSetDate(uint8_t *idbuf){
 
 void ConvertDateTime(uint32_t datetime, RTC_TimeTypeDef* RTC_TimeStruct, RTC_DateTypeDef* RTC_DateStruct){
 	uint32_t nd;
-	uint16_t yy, yd, daysum = 0;
-	uint8_t dd;
+	uint16_t yy, yd, ds = 0;
+	uint8_t mm;
 	uint8_t ma[12] = {31,28,31,30,31,30,31,31,30,31,30,31};
-	
-	
-// 	uint32_t nd, nh, hh;
-// 	uint16_t mm, nm;
-// 	uint8_t ss;
 	
  	nd = datetime / SEC_PER_DAY;
 	
@@ -459,13 +466,13 @@ void ConvertDateTime(uint32_t datetime, RTC_TimeTypeDef* RTC_TimeStruct, RTC_Dat
 	yd = nd / DAY_PER_YEAR;
 	yd = nd - (yd * DAY_PER_YEAR + yd / 4);
 	
-	for (dd=1;(daysum<yd)&&(dd<12);dd++){
-		daysum += ma[dd-1];
+	for (mm=0;(ds<yd)&&(mm<12);mm++){
+		ds += ma[mm];
 	}
 	
 	RTC_DateStruct->RTC_Year = yy;
-	RTC_DateStruct->RTC_Month = dd - 1;
-	RTC_DateStruct->RTC_Date = yd - (daysum - ma[dd]) + 1;
+	RTC_DateStruct->RTC_Month = mm;
+	RTC_DateStruct->RTC_Date = yd - (ds - ma[mm-1]) + 1;
 	RTC_TimeStruct->RTC_Hours = (datetime % SEC_PER_DAY) / SEC_PER_HOUR;
 	RTC_TimeStruct->RTC_Minutes = (datetime % SEC_PER_HOUR) / SEC_PER_MINUTE;
 	RTC_TimeStruct->RTC_Seconds = datetime % SEC_PER_MINUTE;
@@ -478,6 +485,7 @@ float CalculateTemperature(uint16_t dirtytemp){
 		dirtytemp = -dirtytemp; 
 	}
 	temp = dirtytemp * temperature_resolution;
+	if (temp>125){temp=0;}
 	return temp;
 }
 
@@ -512,6 +520,21 @@ void Init_tim_cnt(void){
 	TIM_Cmd(TIM2, ENABLE);
 	
 	NVIC_EnableIRQ(TIM2_IRQn);	
+}
+
+void DAC_Config(void)
+{
+  DAC_InitTypeDef DAC_InitStructure;
+
+  /* DAC channel1 Configuration */
+  DAC_InitStructure.DAC_Trigger = DAC_Trigger_None;
+  DAC_InitStructure.DAC_WaveGeneration = DAC_WaveGeneration_None;
+  DAC_InitStructure.DAC_OutputBuffer = DAC_OutputBuffer_Enable;
+
+  /* DAC Channel1 Init */
+  DAC_Init(DAC_Channel_1, &DAC_InitStructure);
+  /* Enable DAC Channel1 */
+  DAC_Cmd(DAC_Channel_1, ENABLE);
 }
 
 void Init_ext_GLCD_GPIOs (void){
@@ -553,7 +576,7 @@ void RCC_Configuration(void){
   RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOA | RCC_AHBPeriph_GPIOB | RCC_AHBPeriph_GPIOC| RCC_AHBPeriph_GPIOD| RCC_AHBPeriph_GPIOE| RCC_AHBPeriph_GPIOH, ENABLE);     
 	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1, ENABLE);
 	
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2 | RCC_APB1Periph_USART2, ENABLE);	
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2 | RCC_APB1Periph_USART2 | RCC_APB1Periph_DAC, ENABLE);	
 	//RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2 | RCC_APB1Periph_TIM3, ENABLE);
 	
   RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1 | RCC_APB2Periph_SYSCFG, ENABLE);
@@ -682,6 +705,11 @@ void Init_GPIOs (void){
   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AN;
   GPIO_Init( GPIOC, &GPIO_InitStructure);  
 
+  /* Configure PA.04 (DAC_OUT1), PA.05 (DAC_OUT2) as analog */
+  GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_4 | GPIO_Pin_5;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AN;
+  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+  GPIO_Init(GPIOA, &GPIO_InitStructure);
 } 
 
 FunctionalState  testUserCalibData(void)

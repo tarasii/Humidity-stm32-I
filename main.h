@@ -75,6 +75,7 @@ void RCC_Configuration(void);
 void Init_tim_cnt(void);
 uint16_t uint16_time_diff(uint16_t now, uint16_t before);
 void configureADC_Temp(void);
+void DAC_Config(void);
 void configureDMA(void);
 void processTempData(void);
 uint16_t GetTemperature(uint8_t *idbuf);
