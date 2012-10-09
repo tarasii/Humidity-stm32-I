@@ -439,9 +439,9 @@ void owSetDate(uint8_t *idbuf){
 }
 
 void ConvertDateTime(uint32_t datetime, RTC_TimeTypeDef* RTC_TimeStruct, RTC_DateTypeDef* RTC_DateStruct){
-	uint32_t hh, nd;
-	uint16_t mm, yy, cd, daysum = 0;
-	uint8_t ss, i;
+	uint32_t nd;
+	uint16_t yy, yd, daysum = 0;
+	uint8_t dd;
 	uint8_t ma[12] = {31,28,31,30,31,30,31,31,30,31,30,31};
 	
 	
@@ -449,31 +449,26 @@ void ConvertDateTime(uint32_t datetime, RTC_TimeTypeDef* RTC_TimeStruct, RTC_Dat
 // 	uint16_t mm, nm;
 // 	uint8_t ss;
 	
- 	nd = datetime / (24*60*60);
-// 	nh = datetime - nd * 24*60*60;
-// 	hh = nh/(60*60);
-// 	nm = nh - hh * 60*60;
-// 	mm = (nm)/60;
-// 	ss = nm - mm*60;
+ 	nd = datetime / SEC_PER_DAY;
 	
-	yy = (nd / 365) - 30;
+	yy = START_YEAR + nd / DAY_PER_YEAR;
+	yy = yy - (yy / 100) * 100;
 	
 	if (yy % 4 == 0){ma[1]+=1;}
 	
-	cd = nd - ((nd / 365) * 365 + nd / 365 / 4);
-	for (i=1;daysum<cd;i++){
-		daysum += ma[i-1];
+	yd = nd / DAY_PER_YEAR;
+	yd = nd - (yd * DAY_PER_YEAR + yd / 4);
+	
+	for (dd=1;(daysum<yd)&&(dd<12);dd++){
+		daysum += ma[dd-1];
 	}
-	hh = (datetime % (24*60*60)) / (60*60);
-	mm = (datetime % (60*60)) / 60;
-	ss = datetime % 60;
 	
 	RTC_DateStruct->RTC_Year = yy;
-	RTC_DateStruct->RTC_Month = i-1;
-	RTC_DateStruct->RTC_Date = cd - (daysum - ma[i])+1;
-	RTC_TimeStruct->RTC_Hours = hh;
-	RTC_TimeStruct->RTC_Minutes = mm;
-	RTC_TimeStruct->RTC_Seconds = ss;
+	RTC_DateStruct->RTC_Month = dd - 1;
+	RTC_DateStruct->RTC_Date = yd - (daysum - ma[dd]) + 1;
+	RTC_TimeStruct->RTC_Hours = (datetime % SEC_PER_DAY) / SEC_PER_HOUR;
+	RTC_TimeStruct->RTC_Minutes = (datetime % SEC_PER_HOUR) / SEC_PER_MINUTE;
+	RTC_TimeStruct->RTC_Seconds = datetime % SEC_PER_MINUTE;
 }
 
 float CalculateTemperature(uint16_t dirtytemp){

@@ -48,6 +48,12 @@
 #define IDD_MEASURE_PORT	GPIOA
 #define IDD_MEASURE             GPIO_Pin_4
 
+#define START_YEAR 1970
+
+#define DAY_PER_YEAR 365 
+#define SEC_PER_DAY 86400 
+#define SEC_PER_HOUR 3600 
+#define SEC_PER_MINUTE 60 
 
 /* Exported types ------------------------------------------------------------*/
 typedef struct
