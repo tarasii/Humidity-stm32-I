@@ -174,6 +174,7 @@ int main(void){
 				if(dt<0){dt=-dt;}
 				if(dt>20){
 					PutPixel(curx,61-(preasureAVG-997));
+					PutPixel(curx,24+(humidity/5));
 					buftime = RTCTimeStr.RTC_Minutes;
 					if (++curx>98){
 						curx=1;

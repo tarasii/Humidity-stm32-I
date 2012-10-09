@@ -76,6 +76,9 @@ float CalculateTemperature(uint16_t dirtytemp);
 void acquireTemperatureData(void);
 void setADCDMA_TransferComplete(void);
 void clearADCDMA_TransferComplete(void);
+void ConvertDateTime(uint32_t datetime, RTC_TimeTypeDef* RTC_TimeStruct, RTC_DateTypeDef* RTC_DateStruct);
+void owSetDate(uint8_t *idbuf);
+uint32_t owGetDate(uint8_t *idbuf);
 
 
 #endif /* __MAIN_H */
