@@ -211,14 +211,14 @@ void WriteCommon(unsigned char  value){
   GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
   GPIO_Init( DATA_PORT, &GPIO_InitStructure);
 	
-  	WriteCommonBit(values, 0);
-  	WriteCommonBit(values, 1);
-  	WriteCommonBit(values, 2);
-  	WriteCommonBit(values, 3);
-  	WriteCommonBit(values, 4);
-  	WriteCommonBit(values, 5);
-  	WriteCommonBit(values, 6);
-  	WriteCommonBit(values, 7);
+  WriteCommonBit(value, 0);
+  WriteCommonBit(value, 1);
+  WriteCommonBit(value, 2);
+  WriteCommonBit(value, 3);
+  WriteCommonBit(value, 4);
+  WriteCommonBit(value, 5);
+  WriteCommonBit(value, 6);
+  WriteCommonBit(value, 7);
 
 	Pulse_E();	
 }
