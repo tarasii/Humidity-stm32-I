@@ -142,7 +142,7 @@ int main(void){
  		temperature_data = GetTemperature((uint8_t *) idbuf[1]); 
  		temperature = CalculateTemperature(temperature_data);		
 		
-		DAC_SetChannel1Data(DAC_Align_8b_R, 2048 + temperature_data);
+		DAC_SetChannel1Data(DAC_Align_12b_R, 160+temperature*3);
 		DAC_SetChannel2Data(DAC_Align_8b_R, 1024);
 		
 		switch (mode){
