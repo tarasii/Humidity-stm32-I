@@ -127,6 +127,7 @@ int main(void){
 		if (period!=0){
 			capacitance = period * 1000 / capasitive_coefficient;
 			humidity = (capacitance-zero_capacitance)*100/60; 
+			if(humidity > 100){humidity = 99;}
 		}
  
 		acquireTemperatureData();
@@ -184,7 +185,7 @@ int main(void){
 
 				dt = RTCTimeStr.RTC_Minutes - buftime;
 				if(dt<0){dt=-dt;}
-				if(dt>20){
+				if(dt>15){
 					PutPixel(curx,61-(preasureAVG-997));
 					PutPixel(curx,44-(humidity/5));
 					buftime = RTCTimeStr.RTC_Minutes;
