@@ -65,8 +65,8 @@ void DMA1_Channel1_IRQHandler    (void)
 
 int main(void){
 
-	uint8_t i, curx, buftime;
-	int dt;
+	uint8_t i, curx, buftime ;
+	int dt; uint32_t cury;
 	char strDisp[25] ;
 	uint32_t datetime;
 	
@@ -162,7 +162,7 @@ int main(void){
 					GotoXY(0,6);				
 					Write_GLCD((unsigned char *) "P");
 					Rectangle(5,24,99,62);
-					drawLine(5,40,99,40);
+					//drawLine(5,40,99,40);
 					
 					curx=6; 
 					buftime = 80;
@@ -185,8 +185,10 @@ int main(void){
 
 				dt = RTCTimeStr.RTC_Minutes - buftime;
 				if(dt<0){dt=-dt;}
-				if(dt>15){
-					PutPixel(curx,61-(preasureAVG-997));
+				if(dt>15){				
+					if (preasureAVG<988) cury=0; else cury = preasureAVG-988;
+					//if (cury>20) cury=20;
+					PutPixel(curx,61 - cury);
 					PutPixel(curx,44-(humidity/5));
 					buftime = RTCTimeStr.RTC_Minutes;
 					if (++curx>98){
