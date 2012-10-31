@@ -25,7 +25,7 @@ float humidity, capacitance;
 
 float temperature;
 uint16_t temperature_data;
-uint8_t idbuf[2][8];
+uint8_t idbuf[owdevnum][8];
 uint8_t num_ow;
 
 volatile uint16_t dirty_cycle = 0, period = 0; //, gpioa_state;
@@ -96,7 +96,7 @@ int main(void){
 	Init_tim_cnt();
 
 	
-	num_ow = OW_Scan((uint8_t *)idbuf, 2);
+	num_ow = OW_Scan((uint8_t *)idbuf, owdevnum);
 	
   OW_Send(OW_SEND_RESET, "\xcc\x44", 2, NULL, NULL, OW_NO_READ);
 	
@@ -252,7 +252,7 @@ int main(void){
 					
 				}
 					
-				for (i=0;i<2;i++){
+				for (i=0;i<owdevnum;i++){
 					sprintf(strDisp, "ID=%02x%02x%02x%02x%02x%02x%02x%02x", idbuf[i][0], idbuf[i][1], idbuf[i][2], idbuf[i][3], idbuf[i][4], idbuf[i][5], idbuf[i][6], idbuf[i][7]);
 					GotoXY(0,i);				
 					Write_GLCD((unsigned char *) strDisp);

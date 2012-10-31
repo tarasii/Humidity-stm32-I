@@ -48,6 +48,8 @@
 #define IDD_MEASURE_PORT	GPIOA
 #define IDD_MEASURE             GPIO_Pin_4
 
+#define owdevnum 2
+
 #define START_YEAR 1970
 
 #define DAY_PER_YEAR 365 
