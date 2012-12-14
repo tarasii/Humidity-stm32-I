@@ -15,9 +15,9 @@ CALIB_TypeDef calibdata;    /* field storing temp sensor calibration data */
 volatile bool flag_ADCDMA_TransferComplete;
 uint16_t ADC_ConvertedValueBuff[ADC_CONV_BUFF_SIZE];
 
-uint32_t refAVG, tempAVG, preasureAVG;
+uint32_t refAVG, tempAVG, preasureAVG, altTempAVG;
 int32_t temperature_C;
-float voltage_V, preasure_V; 
+float voltage_V, preasure_V, altTemp_V; 
 
 volatile uint16_t systick_ms = 0;
 
@@ -86,7 +86,7 @@ int main(void){
 	
 	configureADC_Temp();	
 	
-	DAC_Config();
+	//DAC_Config();
 	
 	Init_Ext_GLCD();
 	
@@ -139,13 +139,15 @@ int main(void){
  		RTC_GetTime(RTC_Format_BIN, &RTCTimeStr);
  		RTC_GetDate(RTC_Format_BIN, &RTCDateStr);
 
- 		temperature_data = GetTemperature((uint8_t *) idbuf[1]); 
+ 		//temperature_data = GetTemperature((uint8_t *) idbuf[1]); 
+ 		temperature_data = GetTemperature((uint8_t *) idbuf[0]); 
  		temperature = CalculateTemperature(temperature_data);		
 		
 		DAC_SetChannel1Data(DAC_Align_12b_R, 160+temperature*3);
 		DAC_SetChannel2Data(DAC_Align_8b_R, 1024);
 		
-		switch (mode){
+		
+	switch (mode){
 			case 0:				
 				if (first_time_in_mode==1) {
 					
@@ -196,7 +198,34 @@ int main(void){
 						first_time_in_mode = 1;
 					}
 				}
-				Delay(500);
+				
+				sprintf(strDisp, "V_ref_RAW=%d;", refAVG);				
+				USART_print(USART1, strDisp, 25);
+				sprintf(strDisp, "Vref=%2.2fV;", voltage_V);				
+				USART_print(USART1, strDisp, 25);
+				sprintf(strDisp, "t_RAW_ds=%d;", temperature_data);				
+				USART_print(USART1, strDisp, 25);
+				sprintf(strDisp, "t_ds=%2.1fC;", temperature);				
+				USART_print(USART1, strDisp, 25);
+				sprintf(strDisp, "t_RAW_lm=%d;", altTempAVG);				
+				USART_print(USART1, strDisp, 25);
+				sprintf(strDisp, "t_lm=%2.1fC;", altTemp_V);				
+				USART_print(USART1, strDisp, 25);
+				sprintf(strDisp, "n_RH=%d;", period);				
+				USART_print(USART1, strDisp, 25);
+				sprintf(strDisp, "C_RH=%2.1fpf;", capacitance);				
+				USART_print(USART1, strDisp, 25);
+				sprintf(strDisp, "RH=%2.1f%%;", humidity);				
+				USART_print(USART1, strDisp, 25);
+				sprintf(strDisp, "P_RAW=%d;", preasureAVG);
+				USART_print(USART1, strDisp, 25);
+				sprintf(strDisp, "P=%2.1fmmHg.\n", preasure_V);
+				USART_print(USART1, strDisp, 25);
+
+				//USART_SendData(USART1, 0);
+		
+					
+				Delay(300);
 				break;
 			case 1:
 				if (first_time_in_mode==1) {
@@ -211,7 +240,7 @@ int main(void){
  				GotoXY(0,0);
  				Write_GLCD((unsigned char *) strDisp);
 					
-				sprintf(strDisp, "n=%d %d %d", period, dirty_cycle,num_ow);				
+				sprintf(strDisp, "n=%d %d %d %2.1f", period, dirty_cycle,num_ow, altTemp_V);				
 				GotoXY(0,1);
 				Write_GLCD((unsigned char *) strDisp);
 				
@@ -234,10 +263,11 @@ int main(void){
 				sprintf(strDisp, "%d %2.1fmmHg", preasureAVG, preasure_V);
 				GotoXY(0,6);				
 				Write_GLCD((unsigned char *) strDisp);
-				
+								
 				sprintf(strDisp, "%x %d", datetime, datetime);
 				GotoXY(0,7);				
 				Write_GLCD((unsigned char *) strDisp);
+				
 										
 				break;
 			case 2:
@@ -261,6 +291,20 @@ int main(void){
 		}			
 
 	}
+	
+}
+
+void USART_print(USART_TypeDef* USARTx, char *buf, uint8_t len){
+	uint8_t i;
+	for (i=0;i<len;i++){
+		if( !buf[i] ) break;
+		USART_SendData(USARTx, buf[i]);
+		Delay(5);
+	}
+	//USART_SendData(USARTx, 13);
+	//Delay(5);
+	//USART_SendData(USARTx, 10);
+	//Delay(5);
 	
 }
 
@@ -350,7 +394,15 @@ void processTempData(void)
   
   dataSum = 0;
   /* Sum up all mesured data for reference temperature average calculation */ 
-  for (index=MAX_TEMP_CHNL; index < ADC_CONV_BUFF_SIZE-4; index++){
+  for (index=MAX_TEMP_CHNL; index < ADC_CONV_BUFF_SIZE-8; index++){
+    dataSum += ADC_ConvertedValueBuff[index];
+  }
+  /* Devide sum up result by 4 for the temperature average calculation*/
+  altTempAVG = dataSum / 4 ;
+
+  dataSum = 0;
+  /* Sum up all mesured data for reference temperature average calculation */ 
+  for (index=MAX_TEMP_CHNL+4; index < ADC_CONV_BUFF_SIZE-4; index++){
     dataSum += ADC_ConvertedValueBuff[index];
   }
   /* Devide sum up result by 4 for the temperature average calculation*/
@@ -358,7 +410,7 @@ void processTempData(void)
 
   dataSum = 0;
   /* Sum up all mesured data for reference temperature average calculation */ 
-  for (index=MAX_TEMP_CHNL+4; index < ADC_CONV_BUFF_SIZE; index++){
+  for (index=MAX_TEMP_CHNL+8; index < ADC_CONV_BUFF_SIZE; index++){
     dataSum += ADC_ConvertedValueBuff[index];
   }
   /* Devide sum up result by 4 for the temperature average calculation*/
@@ -377,6 +429,8 @@ void processTempData(void)
 
   /* Calculate preasure in mmHg */
   preasure_V = (preasure_ref * preasureAVG) / preasure_conv;
+	
+	altTemp_V = (altTempAVG * voltage_V * 100)/ ADC_CONV;
 	
 }
 
@@ -582,7 +636,7 @@ void RCC_Configuration(void){
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2 | RCC_APB1Periph_USART2 | RCC_APB1Periph_DAC, ENABLE);	
 	//RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2 | RCC_APB1Periph_TIM3, ENABLE);
 	
-  RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1 | RCC_APB2Periph_SYSCFG, ENABLE);
+  RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1 | RCC_APB2Periph_SYSCFG | RCC_APB2Periph_USART1, ENABLE);
 
 	/* Allow access to the RTC */
   PWR_RTCAccessCmd(ENABLE);
@@ -608,7 +662,7 @@ void RCC_Configuration(void){
 void Init_GPIOs (void){
   GPIO_InitTypeDef GPIO_InitStructure;
 	USART_InitTypeDef USART_InitStructure;
-  
+	
 //   /* USER button and WakeUP button init: GPIO set in input interrupt active mode */
   EXTI_InitTypeDef EXTI_InitStructure;
   NVIC_InitTypeDef NVIC_InitStructure;
@@ -699,6 +753,27 @@ void Init_GPIOs (void){
 	USART_Init(USART2, &USART_InitStructure);
 	USART_Cmd(USART2, ENABLE);
 
+	//USART1
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_40MHz;
+  GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+  GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_UP;
+
+	GPIO_Init(GPIOA, &GPIO_InitStructure);
+		
+  GPIO_PinAFConfig(GPIOA, GPIO_PinSource9, GPIO_AF_USART1);
+
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10;
+
+	GPIO_Init(GPIOA, &GPIO_InitStructure);
+		
+  GPIO_PinAFConfig(GPIOA, GPIO_PinSource10, GPIO_AF_USART1);
+
+	USART_InitStructure.USART_BaudRate = 9600;
+	USART_Init(USART1, &USART_InitStructure);
+	USART_Cmd(USART1, ENABLE);
+
 /* ADC input */
   GPIO_InitStructure.GPIO_Pin = IDD_MEASURE  ;                               
   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AN;
@@ -709,10 +784,10 @@ void Init_GPIOs (void){
   GPIO_Init( GPIOC, &GPIO_InitStructure);  
 
   /* Configure PA.04 (DAC_OUT1), PA.05 (DAC_OUT2) as analog */
-  GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_4 | GPIO_Pin_5;
-  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AN;
-  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-  GPIO_Init(GPIOA, &GPIO_InitStructure);
+//   GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_4 | GPIO_Pin_5;
+//   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AN;
+//   GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+//   GPIO_Init(GPIOA, &GPIO_InitStructure);
 } 
 
 FunctionalState  testUserCalibData(void)
@@ -825,6 +900,11 @@ void configureADC_Temp(void)
       ADC_RegularChannelConfig(ADC1, ADC_Channel_16, ch_index, 
                                ADC_SampleTime_384Cycles);
     }
+
+  ADC_RegularChannelConfig(ADC1, ADC_Channel_4, 9, ADC_SampleTime_384Cycles);
+  ADC_RegularChannelConfig(ADC1, ADC_Channel_4, 10, ADC_SampleTime_384Cycles);
+  ADC_RegularChannelConfig(ADC1, ADC_Channel_4, 11, ADC_SampleTime_384Cycles);
+  ADC_RegularChannelConfig(ADC1, ADC_Channel_4, 12, ADC_SampleTime_384Cycles);
 
   ADC_RegularChannelConfig(ADC1, ADC_Channel_13, 13, ADC_SampleTime_384Cycles);
   ADC_RegularChannelConfig(ADC1, ADC_Channel_13, 14, ADC_SampleTime_384Cycles);

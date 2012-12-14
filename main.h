@@ -21,7 +21,7 @@
 #define preasure_conv 1020
 
 //configureADC
-#define MAX_TEMP_CHNL 12
+#define MAX_TEMP_CHNL 8
 #define ADC_CONV_BUFF_SIZE 20
 
 #define FACTORY_CALIB_BASE        ((uint32_t)0x1FF80078)    /*!< Calibration Data Bytes base address */
@@ -88,6 +88,6 @@ void clearADCDMA_TransferComplete(void);
 void ConvertDateTime(uint32_t datetime, RTC_TimeTypeDef* RTC_TimeStruct, RTC_DateTypeDef* RTC_DateStruct);
 void owSetDate(uint8_t *idbuf);
 uint32_t owGetDate(uint8_t *idbuf);
-
+void USART_print(USART_TypeDef* USARTx, char *buf, uint8_t len);
 
 #endif /* __MAIN_H */
