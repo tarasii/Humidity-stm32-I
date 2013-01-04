@@ -60,7 +60,7 @@ uint8_t OW_Reset() {
 
 	// отправляем 0xf0 на скорости 9600
 	USART_ClearFlag(OW_USART, USART_FLAG_TC);
-	USART_SendData(OW_USART, 0xf0);
+	USART_SendData(OW_USART, 0x00);
 	while (USART_GetFlagStatus(OW_USART, USART_FLAG_TC) == RESET) {
 		}
 

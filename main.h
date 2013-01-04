@@ -6,15 +6,12 @@
 #include "utils.h"
 #include "ext_glcd.h"
 #include "onewire.h"
+#include "18b20.h"
+#include "dht11.h"
 
 //HCH1000+555
 #define capasitive_coefficient  6492.0 //0,693*(51+2*560)*8
 #define zero_capacitance 315.0
-
-//ds18B20
-#define temperature_resolution 0.0625
-#define tempminusconst 4096
-#define tempminusthreshold 1000
 
 //HSF1000+DS8555
 #define preasure_ref 755.0
@@ -80,8 +77,6 @@ void configureADC_Temp(void);
 void DAC_Config(void);
 void configureDMA(void);
 void processTempData(void);
-uint16_t GetTemperature(uint8_t *idbuf);
-float CalculateTemperature(uint16_t dirtytemp);
 void acquireTemperatureData(void);
 void setADCDMA_TransferComplete(void);
 void clearADCDMA_TransferComplete(void);
@@ -89,5 +84,6 @@ void ConvertDateTime(uint32_t datetime, RTC_TimeTypeDef* RTC_TimeStruct, RTC_Dat
 void owSetDate(uint8_t *idbuf);
 uint32_t owGetDate(uint8_t *idbuf);
 void USART_print(USART_TypeDef* USARTx, char *buf, uint8_t len);
+void USART_DMA(char *buf, uint8_t len);
 
 #endif /* __MAIN_H */

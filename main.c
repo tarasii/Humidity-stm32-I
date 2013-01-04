@@ -66,8 +66,8 @@ void DMA1_Channel1_IRQHandler    (void)
 int main(void){
 
 	uint8_t i, curx, buftime ;
-	int dt; uint32_t cury;
-	char strDisp[25] ;
+	int dt; uint32_t cury, rd;
+	char strDisp[25]; uint8_t dhtbuf[5];
 	uint32_t datetime;
 	
 	//static uint32_t toggle_ms = 0;
@@ -104,10 +104,10 @@ int main(void){
 	
 	datetime = owGetDate((uint8_t *) idbuf[0]);
 	
-	ConvertDateTime(datetime, &RTCTimeStr, &RTCDateStr);
+	//ConvertDateTime(datetime, &RTCTimeStr, &RTCDateStr);
 	
-	RTC_SetTime(RTC_Format_BIN, &RTCTimeStr);
-	RTC_SetDate(RTC_Format_BIN, &RTCDateStr);
+	//RTC_SetTime(RTC_Format_BIN, &RTCTimeStr);
+	//RTC_SetDate(RTC_Format_BIN, &RTCDateStr);
 	
 	
 	while(1){
@@ -143,11 +143,13 @@ int main(void){
  		temperature_data = GetTemperature((uint8_t *) idbuf[0]); 
  		temperature = CalculateTemperature(temperature_data);		
 		
-		DAC_SetChannel1Data(DAC_Align_12b_R, 160+temperature*3);
-		DAC_SetChannel2Data(DAC_Align_8b_R, 1024);
+		read_DHT11(dhtbuf);
+		
+		//DAC_SetChannel1Data(DAC_Align_12b_R, 160+temperature*3);
+		//DAC_SetChannel2Data(DAC_Align_8b_R, 1024);
 		
 		
-	switch (mode){
+		switch (mode){
 			case 0:				
 				if (first_time_in_mode==1) {
 					
@@ -199,31 +201,36 @@ int main(void){
 					}
 				}
 				
-				sprintf(strDisp, "V_ref_RAW=%d;", refAVG);				
-				USART_print(USART1, strDisp, 25);
-				sprintf(strDisp, "Vref=%2.2fV;", voltage_V);				
-				USART_print(USART1, strDisp, 25);
-				sprintf(strDisp, "t_RAW_ds=%d;", temperature_data);				
-				USART_print(USART1, strDisp, 25);
-				sprintf(strDisp, "t_ds=%2.1fC;", temperature);				
-				USART_print(USART1, strDisp, 25);
-				sprintf(strDisp, "t_RAW_lm=%d;", altTempAVG);				
-				USART_print(USART1, strDisp, 25);
-				sprintf(strDisp, "t_lm=%2.1fC;", altTemp_V);				
-				USART_print(USART1, strDisp, 25);
-				sprintf(strDisp, "n_RH=%d;", period);				
-				USART_print(USART1, strDisp, 25);
-				sprintf(strDisp, "C_RH=%2.1fpf;", capacitance);				
-				USART_print(USART1, strDisp, 25);
-				sprintf(strDisp, "RH=%2.1f%%;", humidity);				
-				USART_print(USART1, strDisp, 25);
-				sprintf(strDisp, "P_RAW=%d;", preasureAVG);
-				USART_print(USART1, strDisp, 25);
-				sprintf(strDisp, "P=%2.1fmmHg.\n", preasure_V);
-				USART_print(USART1, strDisp, 25);
-
-				//USART_SendData(USART1, 0);
-		
+				if (USART_GetFlagStatus(USART1, USART_FLAG_RXNE)==SET)
+				{
+					rd = USART_ReceiveData(USART1);
+					sprintf(strDisp, "V_ref_RAW=%d;", refAVG);		
+					USART_DMA(strDisp, strlen(strDisp));
+					sprintf(strDisp, "Vref=%2.2fV;", voltage_V);				
+					USART_DMA(strDisp, strlen(strDisp));
+					sprintf(strDisp, "t_RAW_ds=%d;", temperature_data);				
+					USART_DMA(strDisp, strlen(strDisp));
+					sprintf(strDisp, "t_ds=%2.1fC;", temperature);				
+					USART_DMA(strDisp, strlen(strDisp));
+					sprintf(strDisp, "t_RAW_lm=%d;", altTempAVG);				
+					USART_DMA(strDisp, strlen(strDisp));
+					sprintf(strDisp, "t_lm=%2.1fC;", altTemp_V);				
+					USART_DMA(strDisp, strlen(strDisp));		
+					sprintf(strDisp, "t_dht=%2d.%dC;", dhtbuf[2], dhtbuf[3]);				
+					USART_DMA(strDisp, strlen(strDisp));
+					sprintf(strDisp, "RH_dht=%2d.%d%%;", dhtbuf[0], dhtbuf[1]);				
+					USART_DMA(strDisp, strlen(strDisp));
+					sprintf(strDisp, "n_RH=%d;", period);				
+					USART_DMA(strDisp, strlen(strDisp));
+					sprintf(strDisp, "C_RH=%2.1fpf;", capacitance);				
+					USART_DMA(strDisp, strlen(strDisp));
+					sprintf(strDisp, "RH=%2.1f%%;", humidity);				
+					USART_DMA(strDisp, strlen(strDisp));
+					sprintf(strDisp, "P_RAW=%d;", preasureAVG);
+					USART_DMA(strDisp, strlen(strDisp));
+					sprintf(strDisp, "P=%2.1fmmHg.\n", preasure_V);
+					USART_DMA(strDisp, strlen(strDisp));		
+			  }
 					
 				Delay(300);
 				break;
@@ -294,6 +301,39 @@ int main(void){
 	
 }
 
+
+void USART_DMA(char *buf, uint8_t len){
+	//
+	DMA_InitTypeDef DMA_InitStructure;
+	
+	// DMA на запись
+	DMA_DeInit(DMA1_Channel4);
+	DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t) &(USART1->DR);
+	DMA_InitStructure.DMA_MemoryBaseAddr = (uint32_t) buf;
+	DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralDST;
+	DMA_InitStructure.DMA_BufferSize = len;
+	DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
+	DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
+	DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;
+	DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;
+	DMA_InitStructure.DMA_Mode = DMA_Mode_Normal;
+	DMA_InitStructure.DMA_Priority = DMA_Priority_Low;
+	DMA_InitStructure.DMA_M2M = DMA_M2M_Disable;
+	DMA_Init(DMA1_Channel4, &DMA_InitStructure);
+
+	// старт цикла отправки
+	USART_ClearFlag(USART1, USART_FLAG_TC | USART_FLAG_TXE);
+	USART_DMACmd(USART1, USART_DMAReq_Tx, ENABLE);	
+	DMA_Cmd(DMA1_Channel4, ENABLE);
+	
+	// wait until transmission complite from dma  
+	while (DMA_GetFlagStatus(DMA1_FLAG_TC4) == RESET) {
+	}
+	
+	DMA_Cmd(DMA1_Channel4, DISABLE);
+	USART_DMACmd(USART1, USART_DMAReq_Tx, DISABLE);
+}
+
 void USART_print(USART_TypeDef* USARTx, char *buf, uint8_t len){
 	uint8_t i;
 	for (i=0;i<len;i++){
@@ -301,10 +341,6 @@ void USART_print(USART_TypeDef* USARTx, char *buf, uint8_t len){
 		USART_SendData(USARTx, buf[i]);
 		Delay(5);
 	}
-	//USART_SendData(USARTx, 13);
-	//Delay(5);
-	//USART_SendData(USARTx, 10);
-	//Delay(5);
 	
 }
 
@@ -434,36 +470,6 @@ void processTempData(void)
 	
 }
 
-uint16_t GetTemperature(uint8_t *idbuf){
-	uint16_t dirtytemp;
- 	uint8_t buf[2];
- 	uint8_t cmd[12];
- 	uint8_t i;
-	
-// 	  OW_Send(OW_SEND_RESET, "\xcc\x44", 2, NULL, NULL, OW_NO_READ);
-//   	Delay(2);
-//    OW_Send(OW_SEND_RESET, "\xcc\xbe\xff\xff", 4, buf, 2, 2);
- 	
-	cmd[0]=0x55;
-	for (i=1;i<9;i++)
-	{
-		cmd[i]=idbuf[i-1];
-	}
-	cmd[9]=0x44;
-	
- 	OW_Send(OW_SEND_RESET, cmd, 10, NULL, NULL, OW_NO_READ);
-  
-	Delay(10);
-	
-	cmd[9]=0xbe;
-	cmd[10]=0xff;
-	cmd[11]=0xff;
-  OW_Send(OW_SEND_RESET, cmd, 12, buf, 2, 10);
-	
-	dirtytemp = buf[1]*0x100+buf[0];
-	
-	return dirtytemp;
-}
 
 uint32_t owGetDate(uint8_t *idbuf){
  	uint8_t cmd[10];
@@ -533,17 +539,6 @@ void ConvertDateTime(uint32_t datetime, RTC_TimeTypeDef* RTC_TimeStruct, RTC_Dat
 	RTC_TimeStruct->RTC_Hours = (datetime % SEC_PER_DAY) / SEC_PER_HOUR;
 	RTC_TimeStruct->RTC_Minutes = (datetime % SEC_PER_HOUR) / SEC_PER_MINUTE;
 	RTC_TimeStruct->RTC_Seconds = datetime % SEC_PER_MINUTE;
-}
-
-float CalculateTemperature(uint16_t dirtytemp){
-	float temp;
-	if( dirtytemp > tempminusthreshold ) { 
-		dirtytemp = tempminusconst - dirtytemp; 
-		dirtytemp = -dirtytemp; 
-	}
-	temp = dirtytemp * temperature_resolution;
-	if (temp>125){temp=0;}
-	return temp;
 }
 
 
@@ -727,7 +722,7 @@ void Init_GPIOs (void){
 //   GPIO_PinAFConfig(GPIOA, GPIO_PinSource5, GPIO_AF_TIM2);
 	
 /* USART input-output temperature */	
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2;
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2 | GPIO_Pin_3;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_40MHz;
   GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
@@ -736,11 +731,6 @@ void Init_GPIOs (void){
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 		
   GPIO_PinAFConfig(GPIOA, GPIO_PinSource2, GPIO_AF_USART2);
-
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3;
-
-	GPIO_Init(GPIOA, &GPIO_InitStructure);
-		
   GPIO_PinAFConfig(GPIOA, GPIO_PinSource3, GPIO_AF_USART2);
 
 	USART_InitStructure.USART_BaudRate = 115200;
@@ -754,7 +744,7 @@ void Init_GPIOs (void){
 	USART_Cmd(USART2, ENABLE);
 
 	//USART1
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9;
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9 | GPIO_Pin_10;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_40MHz;
   GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
@@ -763,11 +753,6 @@ void Init_GPIOs (void){
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 		
   GPIO_PinAFConfig(GPIOA, GPIO_PinSource9, GPIO_AF_USART1);
-
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10;
-
-	GPIO_Init(GPIOA, &GPIO_InitStructure);
-		
   GPIO_PinAFConfig(GPIOA, GPIO_PinSource10, GPIO_AF_USART1);
 
 	USART_InitStructure.USART_BaudRate = 9600;
