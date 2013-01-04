@@ -8,6 +8,7 @@
 #include "onewire.h"
 #include "18b20.h"
 #include "dht11.h"
+#include "ds2417.h"
 
 //HCH1000+555
 #define capasitive_coefficient  6492.0 //0,693*(51+2*560)*8
@@ -47,13 +48,6 @@
 
 #define owdevnum 2
 
-#define START_YEAR 1970
-
-#define DAY_PER_YEAR 365 
-#define SEC_PER_DAY 86400 
-#define SEC_PER_HOUR 3600 
-#define SEC_PER_MINUTE 60 
-
 /* Exported types ------------------------------------------------------------*/
 typedef struct
 {
@@ -80,9 +74,6 @@ void processTempData(void);
 void acquireTemperatureData(void);
 void setADCDMA_TransferComplete(void);
 void clearADCDMA_TransferComplete(void);
-void ConvertDateTime(uint32_t datetime, RTC_TimeTypeDef* RTC_TimeStruct, RTC_DateTypeDef* RTC_DateStruct);
-void owSetDate(uint8_t *idbuf);
-uint32_t owGetDate(uint8_t *idbuf);
 void USART_print(USART_TypeDef* USARTx, char *buf, uint8_t len);
 void USART_DMA(char *buf, uint8_t len);
 
