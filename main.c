@@ -19,7 +19,7 @@ uint32_t refAVG, tempAVG, preasureAVG, altTempAVG;
 int32_t temperature_C;
 float voltage_V, preasure_V, altTemp_V; 
 
-volatile uint16_t systick_ms = 0;
+volatile uint16_t systick_ms = 0, toggle_ms = 0;
 
 float humidity, capacitance;
 
@@ -147,156 +147,176 @@ int main(void){
 		
 		//DAC_SetChannel1Data(DAC_Align_12b_R, 160+temperature*3);
 		//DAC_SetChannel2Data(DAC_Align_8b_R, 1024);
-		
-		
-		switch (mode){
-			case 0:				
-				if (first_time_in_mode==1) {
-					
-					ClearFullScreen();
-					first_time_in_mode = 0;
-					
-					GPIO_LOW(LD_PORT,LD_GREEN);
-					GPIO_LOW(LD_PORT,LD_BLUE);
-					
-					GotoXY(0,3);				
-					Write_GLCD((unsigned char *) "R");
-					GotoXY(0,4);				
-					Write_GLCD((unsigned char *) "H");
-					GotoXY(0,6);				
-					Write_GLCD((unsigned char *) "P");
-					Rectangle(5,24,99,62);
-					//drawLine(5,40,99,40);
-					
-					curx=6; 
-					buftime = 80;
 
-				}
-				
- 				sprintf(strDisp, "%02d/%02d/%02d %02d:%02d:%02d", RTCDateStr.RTC_Year, RTCDateStr.RTC_Month, RTCDateStr.RTC_Date, RTCTimeStr.RTC_Hours, RTCTimeStr.RTC_Minutes, RTCTimeStr.RTC_Seconds);
- 				GotoXY(0,0);
- 				Write_GLCD((unsigned char *) strDisp);
+		if (USART_GetFlagStatus(USART1, USART_FLAG_RXNE)==SET)
+		{
+			rd = USART_ReceiveData(USART1);
+			rd = USART_ReceiveData(USART1);
+			Delay(100);
+			if (rd == 122) 
+			{				
+				sprintf(strDisp, "begin;%2.1f;%2.1f;", temperature, altTemp_V);				
+				USART_DMA(strDisp, strlen(strDisp));		
+				sprintf(strDisp, "%d.%d;%d.%d;", dhtbuf[2], dhtbuf[3], dhtbuf[0], dhtbuf[1]);				
+				USART_DMA(strDisp, strlen(strDisp));		
+				sprintf(strDisp, "%2.1f;%2.1f;end\n", humidity, preasure_V);				
+				USART_DMA(strDisp, strlen(strDisp));
+			}
+			else
+			{
+				sprintf(strDisp, "UART=%d;", rd);		
+				USART_DMA(strDisp, strlen(strDisp));
+				sprintf(strDisp, "V_ref_RAW=%d;", refAVG);		
+				USART_DMA(strDisp, strlen(strDisp));
+				sprintf(strDisp, "Vref=%2.2fV;", voltage_V);				
+				USART_DMA(strDisp, strlen(strDisp));
+				sprintf(strDisp, "t_RAW_ds=%d;", temperature_data);				
+				USART_DMA(strDisp, strlen(strDisp));
+				sprintf(strDisp, "t_ds=%2.1fC;", temperature);				
+				USART_DMA(strDisp, strlen(strDisp));
+				sprintf(strDisp, "t_RAW_lm=%d;", altTempAVG);				
+				USART_DMA(strDisp, strlen(strDisp));
+				sprintf(strDisp, "t_lm=%2.1fC;", altTemp_V);				
+				USART_DMA(strDisp, strlen(strDisp));		
+				sprintf(strDisp, "t_dht=%2d.%dC;", dhtbuf[2], dhtbuf[3]);				
+				USART_DMA(strDisp, strlen(strDisp));
+				sprintf(strDisp, "RH_dht=%2d.%d%%;", dhtbuf[0], dhtbuf[1]);				
+				USART_DMA(strDisp, strlen(strDisp));
+				sprintf(strDisp, "n_RH=%d;", period);				
+				USART_DMA(strDisp, strlen(strDisp));
+				sprintf(strDisp, "C_RH=%2.1fpf;", capacitance);				
+				USART_DMA(strDisp, strlen(strDisp));
+				sprintf(strDisp, "RH=%2.1f%%;", humidity);				
+				USART_DMA(strDisp, strlen(strDisp));
+				sprintf(strDisp, "P_RAW=%d;", preasureAVG);
+				USART_DMA(strDisp, strlen(strDisp));
+				sprintf(strDisp, "P=%2.1fmmHg.\n", preasure_V);
+				USART_DMA(strDisp, strlen(strDisp));
+				}				
+			}
+			
+ 		if (uint16_time_diff(systick_ms, toggle_ms) >= 500)
+ 		{
+ 			toggle_ms = systick_ms;
+			switch (mode){
+				case 0:				
+					if (first_time_in_mode==1) {
+						
+						ClearFullScreen();
+						first_time_in_mode = 0;
+						
+						GPIO_LOW(LD_PORT,LD_GREEN);
+						GPIO_LOW(LD_PORT,LD_BLUE);
+						
+						GotoXY(0,3);				
+						Write_GLCD((unsigned char *) "R");
+						GotoXY(0,4);				
+						Write_GLCD((unsigned char *) "H");
+						GotoXY(0,6);				
+						Write_GLCD((unsigned char *) "P");
+						Rectangle(5,24,99,62);
+						//drawLine(5,40,99,40);
+						
+						curx=6; 
+						buftime = 80;
 
- 				sprintf(strDisp, "t=%2.1f°C RH=%2.1f%%", temperature, humidity);				
- 				GotoXY(0,1);
- 				Write_GLCD((unsigned char *) strDisp);
-				
- 				sprintf(strDisp, "P=%2.1fmmHg", preasure_V);
- 				GotoXY(0,2);				
- 				Write_GLCD((unsigned char *) strDisp);
-				
-				datetime = owGetDate((uint8_t *) idbuf[0]);
-
-				dt = RTCTimeStr.RTC_Minutes - buftime;
-				if(dt<0){dt=-dt;}
-				if(dt>15){				
-					if (preasureAVG<988) cury=0; else cury = preasureAVG-988;
-					//if (cury>20) cury=20;
-					PutPixel(curx,61 - cury);
-					PutPixel(curx,44-(humidity/5));
-					buftime = RTCTimeStr.RTC_Minutes;
-					if (++curx>98){
-						curx=6;
-						first_time_in_mode = 1;
 					}
-				}
-				
-				if (USART_GetFlagStatus(USART1, USART_FLAG_RXNE)==SET)
-				{
-					rd = USART_ReceiveData(USART1);
-					sprintf(strDisp, "V_ref_RAW=%d;", refAVG);		
-					USART_DMA(strDisp, strlen(strDisp));
-					sprintf(strDisp, "Vref=%2.2fV;", voltage_V);				
-					USART_DMA(strDisp, strlen(strDisp));
-					sprintf(strDisp, "t_RAW_ds=%d;", temperature_data);				
-					USART_DMA(strDisp, strlen(strDisp));
-					sprintf(strDisp, "t_ds=%2.1fC;", temperature);				
-					USART_DMA(strDisp, strlen(strDisp));
-					sprintf(strDisp, "t_RAW_lm=%d;", altTempAVG);				
-					USART_DMA(strDisp, strlen(strDisp));
-					sprintf(strDisp, "t_lm=%2.1fC;", altTemp_V);				
-					USART_DMA(strDisp, strlen(strDisp));		
-					sprintf(strDisp, "t_dht=%2d.%dC;", dhtbuf[2], dhtbuf[3]);				
-					USART_DMA(strDisp, strlen(strDisp));
-					sprintf(strDisp, "RH_dht=%2d.%d%%;", dhtbuf[0], dhtbuf[1]);				
-					USART_DMA(strDisp, strlen(strDisp));
-					sprintf(strDisp, "n_RH=%d;", period);				
-					USART_DMA(strDisp, strlen(strDisp));
-					sprintf(strDisp, "C_RH=%2.1fpf;", capacitance);				
-					USART_DMA(strDisp, strlen(strDisp));
-					sprintf(strDisp, "RH=%2.1f%%;", humidity);				
-					USART_DMA(strDisp, strlen(strDisp));
-					sprintf(strDisp, "P_RAW=%d;", preasureAVG);
-					USART_DMA(strDisp, strlen(strDisp));
-					sprintf(strDisp, "P=%2.1fmmHg.\n", preasure_V);
-					USART_DMA(strDisp, strlen(strDisp));		
-			  }
 					
-				Delay(300);
-				break;
-			case 1:
-				if (first_time_in_mode==1) {
-					
-					ClearFullScreen();
-					first_time_in_mode = 0;
-					
-					GPIO_TOGGLE(LD_PORT,LD_GREEN);
-				}
-					
- 				sprintf(strDisp, "%02d/%02d/%02d %02d:%02d:%02d", RTCDateStr.RTC_Year, RTCDateStr.RTC_Month, RTCDateStr.RTC_Date, RTCTimeStr.RTC_Hours, RTCTimeStr.RTC_Minutes, RTCTimeStr.RTC_Seconds);
- 				GotoXY(0,0);
- 				Write_GLCD((unsigned char *) strDisp);
-					
-				sprintf(strDisp, "n=%d %d %d %2.1f", period, dirty_cycle,num_ow, altTemp_V);				
-				GotoXY(0,1);
-				Write_GLCD((unsigned char *) strDisp);
-				
-				sprintf(strDisp, "C=%2.1fpf RH=%2.1f%%", capacitance, humidity);				
-				GotoXY(0,2);
-				Write_GLCD((unsigned char *) strDisp);
-				
-				sprintf(strDisp, "%x (%d) t=%2.1f°C", temperature_data, temperature_data, temperature);				
- 				GotoXY(0,3);
- 				Write_GLCD((unsigned char *) strDisp);
-		
-				sprintf(strDisp, "%d Vref=%2.2fV", refAVG, voltage_V);				
-				GotoXY(0,4);
-				Write_GLCD((unsigned char *) strDisp);
-	
-				sprintf(strDisp, "%d t(core)=%d°C", tempAVG, temperature_C);
-				GotoXY(0,5);				
-				Write_GLCD((unsigned char *) strDisp);
-				
-				sprintf(strDisp, "%d %2.1fmmHg", preasureAVG, preasure_V);
-				GotoXY(0,6);				
-				Write_GLCD((unsigned char *) strDisp);
-								
-				sprintf(strDisp, "%x %d", datetime, datetime);
-				GotoXY(0,7);				
-				Write_GLCD((unsigned char *) strDisp);
-				
-										
-				break;
-			case 2:
-				if (first_time_in_mode==1) {
-					
-					ClearFullScreen();
-					
-					first_time_in_mode = 0;
-					
-					GPIO_TOGGLE(LD_PORT,LD_GREEN);
-					GPIO_TOGGLE(LD_PORT,LD_BLUE);
-					
-				}
-					
-				for (i=0;i<owdevnum;i++){
-					sprintf(strDisp, "ID=%02x%02x%02x%02x%02x%02x%02x%02x", idbuf[i][0], idbuf[i][1], idbuf[i][2], idbuf[i][3], idbuf[i][4], idbuf[i][5], idbuf[i][6], idbuf[i][7]);
-					GotoXY(0,i);				
+					sprintf(strDisp, "%02d/%02d/%02d %02d:%02d:%02d", RTCDateStr.RTC_Year, RTCDateStr.RTC_Month, RTCDateStr.RTC_Date, RTCTimeStr.RTC_Hours, RTCTimeStr.RTC_Minutes, RTCTimeStr.RTC_Seconds);
+					GotoXY(0,0);
 					Write_GLCD((unsigned char *) strDisp);
-				}
-				break;
-		}			
 
+					sprintf(strDisp, "t=%2.1f°C RH=%2.1f%%", temperature, humidity);				
+					GotoXY(0,1);
+					Write_GLCD((unsigned char *) strDisp);
+					
+					sprintf(strDisp, "P=%2.1fmmHg", preasure_V);
+					GotoXY(0,2);				
+					Write_GLCD((unsigned char *) strDisp);
+					
+					datetime = owGetDate((uint8_t *) idbuf[0]);
+
+					dt = RTCTimeStr.RTC_Minutes - buftime;
+					if(dt<0){dt=-dt;}
+					if(dt>15){				
+						if (preasureAVG<988) cury=0; else cury = preasureAVG-988;
+						//if (cury>20) cury=20;
+						PutPixel(curx,61 - cury);
+						PutPixel(curx,44-(humidity/5));
+						buftime = RTCTimeStr.RTC_Minutes;
+						if (++curx>98){
+							curx=6;
+							first_time_in_mode = 1;
+						}
+					}
+					
+						
+					//Delay(300);
+					break;
+				case 1:
+					if (first_time_in_mode==1) {
+						
+						ClearFullScreen();
+						first_time_in_mode = 0;
+						
+						GPIO_TOGGLE(LD_PORT,LD_GREEN);
+					}
+						
+					sprintf(strDisp, "%02d/%02d/%02d %02d:%02d:%02d", RTCDateStr.RTC_Year, RTCDateStr.RTC_Month, RTCDateStr.RTC_Date, RTCTimeStr.RTC_Hours, RTCTimeStr.RTC_Minutes, RTCTimeStr.RTC_Seconds);
+					GotoXY(0,0);
+					Write_GLCD((unsigned char *) strDisp);
+						
+					sprintf(strDisp, "n=%d %d %d %2.1f", period, dirty_cycle,num_ow, altTemp_V);				
+					GotoXY(0,1);
+					Write_GLCD((unsigned char *) strDisp);
+					
+					sprintf(strDisp, "C=%2.1fpf RH=%2.1f%%", capacitance, humidity);				
+					GotoXY(0,2);
+					Write_GLCD((unsigned char *) strDisp);
+					
+					sprintf(strDisp, "%x (%d) t=%2.1f°C", temperature_data, temperature_data, temperature);				
+					GotoXY(0,3);
+					Write_GLCD((unsigned char *) strDisp);
+			
+					sprintf(strDisp, "%d Vref=%2.2fV", refAVG, voltage_V);				
+					GotoXY(0,4);
+					Write_GLCD((unsigned char *) strDisp);
+		
+					sprintf(strDisp, "%d t(core)=%d°C", tempAVG, temperature_C);
+					GotoXY(0,5);				
+					Write_GLCD((unsigned char *) strDisp);
+					
+					sprintf(strDisp, "%d %2.1fmmHg", preasureAVG, preasure_V);
+					GotoXY(0,6);				
+					Write_GLCD((unsigned char *) strDisp);
+									
+					sprintf(strDisp, "%x %d", datetime, datetime);
+					GotoXY(0,7);				
+					Write_GLCD((unsigned char *) strDisp);
+					
+											
+					break;
+				case 2:
+					if (first_time_in_mode==1) {
+						
+						ClearFullScreen();
+						
+						first_time_in_mode = 0;
+						
+						GPIO_TOGGLE(LD_PORT,LD_GREEN);
+						GPIO_TOGGLE(LD_PORT,LD_BLUE);
+						
+					}
+						
+					for (i=0;i<owdevnum;i++){
+						sprintf(strDisp, "ID=%02x%02x%02x%02x%02x%02x%02x%02x", idbuf[i][0], idbuf[i][1], idbuf[i][2], idbuf[i][3], idbuf[i][4], idbuf[i][5], idbuf[i][6], idbuf[i][7]);
+						GotoXY(0,i);				
+						Write_GLCD((unsigned char *) strDisp);
+					}
+					break;
+			}			
+
+		}
 	}
 	
 }

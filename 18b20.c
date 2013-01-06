@@ -2,11 +2,10 @@
 
 float CalculateTemperature(uint16_t dirtytemp){
 	float temp;
-	if( dirtytemp > tempminusthreshold ) { 
-		dirtytemp = tempminusconst - dirtytemp; 
-		dirtytemp = -dirtytemp; 
-	}
 	temp = dirtytemp * temperature_resolution;
+	if( dirtytemp > tempminusthreshold ) { 
+		temp = temp - tempminusconst; 
+	}
 	if (temp>125){temp=0;}
 	return temp;
 }
