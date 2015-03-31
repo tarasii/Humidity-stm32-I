@@ -22,14 +22,14 @@ void EXTI0_IRQHandler(void)
 
 void TIM2_IRQHandler(void)
 {
-  //if (TIM_GetITStatus(TIM2, TIM_IT_CC2) != RESET)
-  //{
+  if (TIM_GetITStatus(TIM2, TIM_IT_CC2) != RESET)
+  {
     /* Даём знать, что обработали прерывание */
     TIM_ClearITPendingBit(TIM2, TIM_IT_CC2);
 
 	  period = TIM_GetCapture1(TIM2);
     dirty_cycle = TIM_GetCapture2(TIM2);
-	//}
+	}
 }
 
 void DMA1_Channel1_IRQHandler    (void)
@@ -74,7 +74,7 @@ int main(void){
 	
   OW_Send(OW_SEND_RESET, "\xcc\x44", 2, NULL, NULL, OW_NO_READ);
 	
-	Delay(200);
+	Delay(1000);
 	
 
 	//owSetDate((uint8_t *)idbuf[0]);
