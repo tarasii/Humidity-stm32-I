@@ -15,6 +15,7 @@
 #include "tim.h"
 #include "delay.h"
 #include "adc.h"
+#include "dac.h"
 
 /* Exported types ------------------------------------------------------------*/
 /* Exported constants --------------------------------------------------------*/

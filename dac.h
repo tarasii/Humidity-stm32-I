@@ -4,6 +4,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "utils.h"
+#include "pin.h"
 
 /* Exported constants --------------------------------------------------------*/
 //PA.04 (DAC_OUT1), PA.05 (DAC_OUT2)
@@ -13,6 +14,10 @@
 
 //#define DAC_ALIGN   DAC_Align_8b_R
 #define DAC_ALIGN   DAC_Align_12b_R
+
+#define DAC_SIGNAL_SINUS_LENGTH			32
+#define DAC_SIGNAL_TRIANGLE_LENGTH		32
+#define DAC_SIGNAL_SAWTOOTH_LENGTH		32
 
 
 /* Exported macro ------------------------------------------------------------*/

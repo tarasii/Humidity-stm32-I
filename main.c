@@ -61,7 +61,7 @@ int main(void){
 				
 	ADC_init();	
 	
-	//DAC_Config();
+	//dac_init(DAC_Channel_1);
 	
 	Init_Ext_GLCD();
 	
@@ -69,7 +69,6 @@ int main(void){
 	Write_GLCD("HUMIDITY SENSOR");
 
 	tim_init_pwm_cnt(GPIOA, GPIO_Pin_1);
-	//Init_tim_cnt();
   
 	ow_num = OW_Scan((uint8_t *)ow_idbuf, owdevnum);
 	
