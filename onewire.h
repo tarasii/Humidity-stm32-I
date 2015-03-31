@@ -6,6 +6,8 @@
 
 #define OW_USART USART2
 
+#define owdevnum 5
+
 // первый параметр функции OW_Send
 #define OW_SEND_RESET		1
 #define OW_NO_RESET		2
@@ -21,6 +23,10 @@
 
 #define OW_NO_READ		0xff
 #define OW_READ_SLOT	0xff
+
+extern uint8_t  ow_num, ow_i;
+extern uint8_t ow_idbuf[owdevnum][8];
+extern uint16_t ow_raw[owdevnum];
 
 uint8_t OW_Send(uint8_t sendReset, uint8_t *command, uint8_t cLen, uint8_t *data, uint8_t dLen, uint8_t readStart);
 uint8_t OW_Scan(uint8_t *buf, uint8_t num);

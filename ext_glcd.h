@@ -2,6 +2,8 @@
 #define __EXT_GLCD_H
 
 #include <stdint.h>
+#include "pin.h"
+#include "delay.h"
 
 #define EXT_LCD_DELAY  1
 #define EXT_LCD_DELAY_LONG  100
@@ -48,5 +50,7 @@ void PutByte(uint8_t gx, uint8_t y, uint8_t pb);
 void PutPixel(uint8_t gx, uint8_t gy);
 void drawLine(int x1, int y1, int x2, int y2);
 void Rectangle(int x1, int y1, int x2, int y2);
+void Init_GLCD_CTRL_GPIOs (void);
+
 
 #endif /* __EXT_GLCD_H */

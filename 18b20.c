@@ -25,7 +25,7 @@ uint16_t GetTemperature(uint8_t *idbuf){
 	
  	OW_Send(OW_SEND_RESET, cmd, 10, NULL, NULL, OW_NO_READ);
   
-	Delay(10);
+	Delay(20);
 	
 	cmd[9]=0xbe;
 	cmd[10]=0xff;

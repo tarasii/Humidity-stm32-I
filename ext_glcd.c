@@ -1,5 +1,4 @@
 #include "ext_glcd.h"
-#include "utils.h"
 
 
 const unsigned char tableGLCDChars[256][5] = {
@@ -65,7 +64,7 @@ const unsigned char tableGLCDChars[256][5] = {
 	{0x07, 0x08, 0x70, 0x08, 0x07}, //Y
 	{0x61, 0x51, 0x49, 0x45, 0x43}, //Z
 	{0x00, 0x7f, 0x41, 0x41, 0x00}, //[
-	{0x02, 0x04, 0x08, 0x10, 0x20}, //\ 
+	{0x02, 0x04, 0x08, 0x10, 0x20}, //"\" 
 	{0x00, 0x41, 0x41, 0x7f, 0x00}, //]
 	{0x04, 0x02, 0x01, 0x02, 0x04}, //^
 	{0x40, 0x40, 0x40, 0x40, 0x40}, //_
@@ -312,6 +311,8 @@ void Init_Ext_GLCD(void){
 	//ClearBits();
 
 	unsigned char i;
+	
+	Init_GLCD_CTRL_GPIOs();
 	
 	for(i=0;i<4;i++){
 
@@ -609,3 +610,10 @@ void Rectangle(int x1, int y1, int x2, int y2) {
 	drawLine(x1, y2, x2, y2);
 	drawLine(x1, y1, x1, y2);
 }
+
+void Init_GLCD_CTRL_GPIOs (void){
+
+  pin_mode(CRSLC_PORT, CRSLC_PIN0 | CRSLC_PIN1, GPIO_MODE_OUT2_OD_UP);
+  pin_mode(CTRL_PORT, CTRL_E | CTRL_RW | CTRL_RS, GPIO_MODE_OUT2_PP);
+	
+} 

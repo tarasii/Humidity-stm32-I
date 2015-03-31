@@ -5,8 +5,6 @@
 /* Includes ------------------------------------------------------------------*/
 #include "utils.h"
 #include "onewire.h"
-#include "ds2417.h"
-
 
 #define START_YEAR 1970
 
