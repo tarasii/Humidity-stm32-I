@@ -72,10 +72,7 @@ int main(void){
   
 	ow_num = OW_Scan((uint8_t *)ow_idbuf, owdevnum);
 	
-  OW_Send(OW_SEND_RESET, "\xcc\x44", 2, NULL, NULL, OW_NO_READ);
-	
-	Delay(1000);
-	
+  //OW_Send(OW_SEND_RESET, "\xcc\x44", 2, NULL, NULL, OW_NO_READ);
 
 	//owSetDate((uint8_t *)idbuf[0]);
 	
@@ -209,7 +206,7 @@ int main(void){
 					GotoXY(0,0);
 					Write_GLCD((unsigned char *) strDisp);
 
-					sprintf(strDisp, "t=%2.1f°C RH=%2.1f%%", temperature, humidity);				
+					sprintf(strDisp, "t=%2.1f°C RH=%2.1f%%    ", temperature, humidity);				
 					GotoXY(0,1);
 					Write_GLCD((unsigned char *) strDisp);
 					
@@ -257,7 +254,7 @@ int main(void){
 					GotoXY(0,2);
 					Write_GLCD((unsigned char *) strDisp);
 					
-					sprintf(strDisp, "%x (%d) t=%2.1f°C", ow_raw[0], ow_raw[0], temperature);				
+					sprintf(strDisp, "%x (%d) t=%2.1f°C  ", ow_raw[0], ow_raw[0], temperature);				
 					GotoXY(0,3);
 					Write_GLCD((unsigned char *) strDisp);
 			
@@ -274,7 +271,7 @@ int main(void){
 					Write_GLCD((unsigned char *) strDisp);
 									
 					//sprintf(strDisp, "%x %d", datetime, datetime);
-					sprintf(strDisp, "dht t=%2dC RH=%2d%%", dhtbuf[2], dhtbuf[0]);				
+					sprintf(strDisp, "dht t=%2dC RH=%2d%%   ", dhtbuf[2], dhtbuf[0]);				
 					GotoXY(0,7);				
 					Write_GLCD((unsigned char *) strDisp);
 					
